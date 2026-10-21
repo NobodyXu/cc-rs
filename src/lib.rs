@@ -1974,8 +1974,7 @@ impl Build {
 
     fn write_flag_check_src(file: &mut fs::File) -> io::Result<()> {
         write!(file, "int main(void) {{ return 0; }}")?;
-        file.flush()?;
-        file.sync_data()
+        file.flush()
     }
 
     fn ensure_check_file(&self) -> Result<PathBuf, Error> {
