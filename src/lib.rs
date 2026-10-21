@@ -4008,12 +4008,21 @@ impl Build {
                     && (program.is_absolute() || program.components().count() == 1)
             });
             if let Some(dir) = dir {
-                let current_dir = env::current_dir()?;
+                // Only an object given by a relative path needs the current
+                // directory, and reading it can fail, for example once the
+                // directory is deleted.
+                let mut current_dir = None;
                 cmd.current_dir(dir);
                 for obj in objs {
                     match obj.strip_prefix(dir) {
                         Ok(relative) => cmd.arg(relative),
-                        Err(_) if obj.is_relative() => cmd.arg(current_dir.join(obj)),
+                        Err(_) if obj.is_relative() => {
+                            let current_dir = match &current_dir {
+                                Some(current_dir) => current_dir,
+                                None => current_dir.insert(env::current_dir()?),
+                            };
+                            cmd.arg(current_dir.join(obj))
+                        }
                         Err(_) => cmd.arg(obj),
                     };
                 }
