@@ -259,27 +259,33 @@ impl Tool {
         ) -> Result<ToolFamily, Error> {
             cargo_output.print_debug(&stdout);
 
-            // https://gitlab.kitware.com/cmake/cmake/-/blob/69a2eeb9dff5b60f2f1e5b425002a0fd45b7cadb/Modules/CMakeDetermineCompilerId.cmake#L267-271
-            // stdin is set to null to ensure that the help output is never paginated.
-            let accepts_cl_style_flags = run(
-                Command::new(path)
-                    .args(args)
-                    .arg("-?")
-                    .stdin(Stdio::null())
-                    .set_family_detection_env(env),
-                &{
-                    // the errors are not errors!
-                    let mut cargo_output = cargo_output.quiet_unless_debug();
-                    cargo_output.output = OutputKind::Discard;
-                    cargo_output
-                },
-            )
-            .is_ok();
-
             let clang = stdout.contains(r#""clang""#);
             let gcc = stdout.contains(r#""gcc""#);
             let emscripten = stdout.contains(r#""emscripten""#);
             let vxworks = stdout.contains(r#""VxWorks""#);
+
+            // https://gitlab.kitware.com/cmake/cmake/-/blob/69a2eeb9dff5b60f2f1e5b425002a0fd45b7cadb/Modules/CMakeDetermineCompilerId.cmake#L267-271
+            // stdin is set to null to ensure that the help output is never paginated.
+            //
+            // The probe only tells `clang-cl` from `clang`, and `cl.exe` from a
+            // compiler that defines none of the macros. A compiler that
+            // defines `__GNUC__` or `__VXWORKS__` but not `__clang__` is GNU
+            // either way, so skip the extra process for it.
+            let accepts_cl_style_flags = (clang || !(gcc || vxworks))
+                && run(
+                    Command::new(path)
+                        .args(args)
+                        .arg("-?")
+                        .stdin(Stdio::null())
+                        .set_family_detection_env(env),
+                    &{
+                        // the errors are not errors!
+                        let mut cargo_output = cargo_output.quiet_unless_debug();
+                        cargo_output.output = OutputKind::Discard;
+                        cargo_output
+                    },
+                )
+                .is_ok();
 
             match (clang, accepts_cl_style_flags, gcc, emscripten, vxworks) {
                 (clang_cl, true, _, false, false) => Ok(ToolFamily::Msvc { clang_cl }),
