@@ -2019,7 +2019,10 @@ impl Build {
                 // cannot open a file that another handle still holds.
                 drop(tmp_file);
 
-                let mut tmp_obj = crate::tempfile::NamedTempfile::new(&dir, "flag_check")?;
+                // With an extension, so that `cl.exe` writes to this path
+                // instead of adding `.obj` to it, which would leave the
+                // object behind when the tempfile is removed.
+                let mut tmp_obj = crate::tempfile::NamedTempfile::new(&dir, "flag_check.o")?;
                 // Same as the source file: the compiler must be able to
                 // overwrite this path, so drop the open handle first.
                 drop(tmp_obj.take_file());
