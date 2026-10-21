@@ -3992,6 +3992,32 @@ fn env_snapshot_reaches_flag_support_probe() {
         .must_not_have("-Dset_after_first_read");
 }
 
+/// An empty `CROSS_COMPILE` is no prefix: the `RUSTC_LINKER` fallback still
+/// applies, and the compiler isn't `-gcc`.
+#[test]
+fn empty_cross_compile_falls_back_to_rustc_linker() {
+    let mut test = Test::gnu();
+    test.env.set("CROSS_COMPILE", "");
+    test.env.set("RUSTC_LINKER", "aarch64-linux-gnu-gcc");
+    let mut build = test.gcc();
+    build
+        .target("aarch64-unknown-linux-gnu")
+        .host("x86_64-unknown-linux-gnu");
+    let compiler = build.try_get_compiler().unwrap();
+    assert_eq!(
+        compiler.path(),
+        std::path::Path::new("aarch64-linux-gnu-gcc")
+    );
+
+    test.env.remove("RUSTC_LINKER");
+    let mut build = test.gcc();
+    build
+        .target("aarch64-unknown-linux-gnu")
+        .host("x86_64-unknown-linux-gnu");
+    let compiler = build.try_get_compiler().unwrap();
+    assert_ne!(compiler.path(), std::path::Path::new("-gcc"));
+}
+
 /// For a cross target, cc runs `<prefix>-ar --version` to pick the archiver,
 /// in the snapshot too.
 #[test]

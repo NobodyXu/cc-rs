@@ -5137,6 +5137,10 @@ impl Build {
         // CROSS_COMPILE is of the form: "arm-linux-gnueabi-"
         self.get_env("CROSS_COMPILE")
             .map(|s| s.to_string_lossy().trim_end_matches('-').to_owned())
+            // An empty `CROSS_COMPILE`, as a Makefile that doesn't set it
+            // exports, means no prefix, not the prefix `""`: `-gcc` is no
+            // compiler, and the fallbacks below still apply.
+            .filter(|prefix| !prefix.is_empty())
             .map(Cow::Owned)
             .or_else(|| {
                 // Put aside RUSTC_LINKER's prefix to be used as second choice, after CROSS_COMPILE
