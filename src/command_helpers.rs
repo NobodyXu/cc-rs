@@ -376,6 +376,10 @@ pub(crate) fn objects_from_files(
     source_root: Option<&Path>,
 ) -> Result<Vec<Object>, Error> {
     let mut objects = Vec::with_capacity(files.len());
+    // Every object goes directly into `dst`.
+    if !files.is_empty() {
+        fs::create_dir_all(dst)?;
+    }
     for file in files {
         let basename = file
             .file_name()
@@ -435,16 +439,6 @@ pub(crate) fn objects_from_files(
         let obj = dst
             .join(format!("{:016x}-{}", hasher.finish(), basename))
             .with_extension("o");
-
-        match obj.parent() {
-            Some(s) => fs::create_dir_all(s)?,
-            None => {
-                return Err(Error::new(
-                    ErrorKind::InvalidArgument,
-                    "dst is an invalid path with no parent",
-                ));
-            }
-        };
 
         objects.push(Object::new(file.to_path_buf(), obj));
     }
