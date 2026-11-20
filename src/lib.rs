@@ -5341,8 +5341,16 @@ impl Build {
     /// variables that are `CC`-specific such as `CC_FORCE_DISABLE`
     /// (`Build::env` applies to child processes, not to `cc` itself).
     fn get_env_overridable(&self, key: &str) -> Option<&Arc<OsStr>> {
-        // Try to look up in overrides first.
-        if let Some((_key, val)) = self.env.explicit.iter().find(|(k, _)| k.as_ref() == key) {
+        // Try to look up in overrides first. Like the tools cc runs, take
+        // the last value a key was given, and compare keys the way the OS
+        // does, so that `Path` and `PATH` are one variable on Windows.
+        if let Some((_key, val)) = self
+            .env
+            .explicit
+            .iter()
+            .rev()
+            .find(|(k, _)| build_env::is_same_key(k, OsStr::new(key)))
+        {
             return Some(val);
         }
 

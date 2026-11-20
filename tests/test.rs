@@ -5144,3 +5144,22 @@ fn explicit_source_remap_native_msvc_is_unchanged() {
         .must_not_have("-fmacro-prefix-map=C:/fixture/src=.")
         .must_not_have("-fdebug-prefix-map=C:/fixture/src=.");
 }
+
+/// A variable given to `Build::env` twice takes its last value, in what cc
+/// reads as well as in what the compiler gets.
+#[test]
+fn build_env_last_value_wins() {
+    let mut test = Test::gnu();
+    test.env.set("MACOSX_DEPLOYMENT_TARGET", "10.12");
+    test.shim("fake-gcc")
+        .gcc()
+        .compiler("fake-gcc")
+        .target("aarch64-apple-darwin")
+        .host("aarch64-apple-darwin")
+        .env("MACOSX_DEPLOYMENT_TARGET", "11.0")
+        .env("MACOSX_DEPLOYMENT_TARGET", "12.0")
+        .file("foo.c")
+        .compile("foo");
+
+    test.cmd(0).must_have("-mmacosx-version-min=12.0");
+}

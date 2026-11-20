@@ -208,7 +208,7 @@ fn pairs(vars: &EnvVars) -> impl Iterator<Item = (&OsStr, &OsStr)> {
 }
 
 /// Environment variable names are case-insensitive on Windows.
-fn is_same_key(a: &OsStr, b: &OsStr) -> bool {
+pub(crate) fn is_same_key(a: &OsStr, b: &OsStr) -> bool {
     if cfg!(windows) {
         a.eq_ignore_ascii_case(b)
     } else {
