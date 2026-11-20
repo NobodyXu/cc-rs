@@ -26,7 +26,7 @@ fn inherits_rustflags() {
         "CARGO_ENCODED_RUSTFLAGS",
         "-Cforce-frame-pointers=true\u{1f}-Ccode-model=small\u{1f}-Csoft-float\u{1f}-Cdwarf-version=5\u{1f}-Zstack-protector=strong",
     );
-    test.gcc().file("foo.c").compile("foo");
+    test.gcc().debug(true).file("foo.c").compile("foo");
     test.cmd(0)
         .must_have("-fno-omit-frame-pointer")
         .must_have("-mno-omit-leaf-frame-pointer")
@@ -34,6 +34,25 @@ fn inherits_rustflags() {
         .must_have("-msoft-float")
         .must_have("-gdwarf-5")
         .must_have("-fstack-protector-strong");
+}
+
+#[test]
+fn dwarf_version_without_debug_info() {
+    // `-gdwarf-N` turns debug info on in the C compiler, while
+    // `-Cdwarf-version` alone doesn't for rustc, so a release build must not
+    // get it.
+    let mut test = Test::gnu();
+    test.env.set("CARGO_ENCODED_RUSTFLAGS", "-Cdwarf-version=5");
+    test.gcc().debug(false).file("foo.c").compile("foo");
+    test.cmd(0).must_not_have("-gdwarf-5");
+}
+
+#[test]
+fn dwarf_version_with_debug_info() {
+    let mut test = Test::gnu();
+    test.env.set("CARGO_ENCODED_RUSTFLAGS", "-Cdwarf-version=5");
+    test.gcc().debug(true).file("foo.c").compile("foo");
+    test.cmd(0).must_have("-gdwarf-5");
 }
 
 #[test]
@@ -110,7 +129,7 @@ fn no_stack_protector() {
         "CARGO_ENCODED_RUSTFLAGS",
         "-Cforce-frame-pointers=true\u{1f}-Ccode-model=small\u{1f}-Csoft-float\u{1f}-Cdwarf-version=5\u{1f}-Zstack-protector=none",
     );
-    test.gcc().file("foo.c").compile("foo");
+    test.gcc().debug(true).file("foo.c").compile("foo");
     test.cmd(0)
         .must_have("-fno-omit-frame-pointer")
         .must_have("-mno-omit-leaf-frame-pointer")

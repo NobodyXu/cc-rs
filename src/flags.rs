@@ -406,8 +406,13 @@ impl RustcCodegenFlags {
             }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-gdwarf-2
             // https://gcc.gnu.org/onlinedocs/gcc/Debugging-Options.html#index-gdwarf
+            //
+            // `-gdwarf-N` also turns debug info on, which `-Cdwarf-version`
+            // doesn't do for rustc, so only forward it when debug info is on.
             if let Some(value) = self.dwarf_version {
-                push_if_supported(format!("-gdwarf-{value}").into());
+                if build.get_debug() {
+                    push_if_supported(format!("-gdwarf-{value}").into());
+                }
             }
             // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-fstack-protector
             // https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html#index-fstack-protector
